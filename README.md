@@ -81,7 +81,12 @@ open index.html
 | --- | --- |
 | `index.html` | ツール本体（HTML・CSS・JavaScript が1つに入っている） |
 | `docs/screenshot.png` | README 用のスクリーンショット |
+| `LICENSE` | ライセンス（MIT） |
 
 ## 作った人
 
 KIKI — ポートフォリオ：https://kiki-portfolio.kiki-works.workers.dev/
+
+## ライセンス
+
+コードは [MIT](LICENSE) です。
