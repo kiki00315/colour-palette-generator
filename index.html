@@ -55,6 +55,8 @@ h1 small { display: block; font-family: var(--font-body); font-weight: 400; font
 .btn { border: 1px solid var(--line); background: var(--surface); color: var(--fg); font: 700 14px var(--font-body); padding: 9px 14px; border-radius: 10px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; }
 .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
 .btn:hover { filter: brightness(1.06); }
+a.btn { text-decoration: none; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 kbd { font: 500 11px var(--font-mono); padding: 1px 5px; border-radius: 4px; border: 1px solid currentColor; opacity: .7; }
 button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -87,6 +89,9 @@ section.saved h2 span { font: 500 12px var(--font-mono); color: var(--muted); }
 .card .name:hover svg, .card .name:focus-visible svg { opacity: 1; }
 .card .name-input { font: 700 13px var(--font-body); color: var(--fg); background: var(--bg); border: 1px solid var(--accent); border-radius: 5px; padding: 2px 4px; margin-left: -4px; width: 100%; outline: none; }
 .card .sub { font: 500 11px var(--font-mono); color: var(--muted); }
+.card .ops { display: flex; flex: none; flex-direction: column; align-items: flex-end; }
+.card .icon { color: var(--fg); font: 500 12px var(--font-body); padding: 4px 6px; text-decoration: underline; text-underline-offset: .25em; white-space: nowrap; }
+.card .icon:hover { color: var(--muted); }
 .card .del { border: 0; background: none; color: var(--muted); cursor: pointer; font: 500 12px var(--font-body); padding: 4px 6px; border-radius: 6px; white-space: nowrap; }
 .card .del.armed { color: var(--danger); font-weight: 700; }
 .empty { border: 1px dashed var(--line); border-radius: 12px; padding: 24px; color: var(--muted); text-align: center; font-size: 14px; }
@@ -120,6 +125,7 @@ section.saved h2 span { font: 500 12px var(--font-mono); color: var(--muted); }
       <button class="btn primary" id="gen" type="button">生成 <kbd>Space</kbd></button>
       <button class="btn" id="save" type="button">保存 <kbd>S</kbd></button>
       <button class="btn" id="css" type="button">CSS変数をコピー</button>
+      <a class="btn" id="to-icon" href="https://kiki00315.github.io/icon-generator/" target="_blank" rel="noopener">アイコンに使う</a>
     </div>
     <span class="hint">HEXをクリックでコピー ・ 鍵アイコンで色を固定</span>
   </div>
@@ -238,10 +244,20 @@ function generate() {
 
 /* ---- 描画 ---- */
 const $ = id => document.getElementById(id);
+
+// アイコンジェネレーター（別のサイト）へ、色をアドレスの # のうしろに載せて渡す（# のうしろはサーバーに送られない）。
+// 2 つのサイトは保存領域（localStorage）を共有できないので、アドレスで渡している
+const ICON_URL = 'https://kiki00315.github.io/icon-generator/';
+const iconHref = hexes => {
+  // localStorage の中身は書きかえられるかもしれないので、正しい色（#RRGGBB）だけを渡す
+  const valid = hexes.filter(h => /^#[0-9A-Fa-f]{6}$/.test(h)).map(h => h.slice(1).toUpperCase());
+  return valid.length >= 2 ? `${ICON_URL}#colors=${valid.join(',')}` : ICON_URL;
+};
 function renderRules() {
   $('rules').innerHTML = RULES.map(r => `<button type="button" data-rule="${r.id}" aria-pressed="${r.id === rule}">${r.label}</button>`).join('');
 }
 function render() {
+  $('to-icon').href = iconHref(colors.map(c => c.hex));
   $('strip').innerHTML = colors.map((c, i) => {
     const fg = ink(c.hex), ratio = contrast(c.hex, fg).toFixed(1);
     const isL = locked.has(i);
@@ -258,9 +274,10 @@ function renderSaved() {
   if (!saved.length) { $('saved').innerHTML = '<div class="empty">まだ保存したパレットはありません。気に入った配色ができたら「保存」を押してください。</div>'; return; }
   $('saved').innerHTML = '<div class="grid">' + saved.map((p, i) => `
     <div class="card">
-      <button type="button" class="mini" data-load="${i}" aria-label="${esc(p.name)} を読み込む">${p.colors.map(h => `<i style="background:${h}"></i>`).join('')}</button>
-      <div class="info"><div><button type="button" class="name" data-rename="${i}" title="クリックで名前を変更"><span>${esc(p.name)}</span>${ICON_PEN}</button><div class="sub">${RULES.find(r => r.id === p.rule)?.label ?? ''} · ${p.colors.join(' ')}</div></div>
-      <button type="button" class="del" data-del="${i}">削除</button></div>
+      <button type="button" class="mini" data-load="${i}" aria-label="${esc(p.name)} を読み込む">${p.colors.map(h => `<i style="background:${esc(h)}"></i>`).join('')}</button>
+      <div class="info"><div><button type="button" class="name" data-rename="${i}" title="クリックで名前を変更"><span>${esc(p.name)}</span>${ICON_PEN}</button><div class="sub">${RULES.find(r => r.id === p.rule)?.label ?? ''} · ${p.colors.map(esc).join(' ')}</div></div>
+      <div class="ops"><a class="icon" href="${esc(iconHref(p.colors))}" target="_blank" rel="noopener">アイコンに使う<span class="sr-only">（新しいタブで開きます）</span></a>
+      <button type="button" class="del" data-del="${i}">削除</button></div></div>
     </div>`).join('') + '</div>';
 }
 
